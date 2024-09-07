@@ -87,7 +87,7 @@
   </style>
 </head>
 <body>
-  <h1>Search Article Details</h1>
+  <h1>Search Articles</h1>
 
   <div class="container">
     <div class="left">
@@ -226,8 +226,8 @@
           // Load PDF in iframe (starting with the last page)
           viewer.src = fileURL + '#view=fit&page=last';
         } else if (fileType === 'application/msword' || fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          // For Word files, use Microsoft Office viewer
-          viewer.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileURL)}`;
+          // For Word files, use Google Docs viewer (more reliable)
+          viewer.src = `https://docs.google.com/viewer?url=${encodeURIComponent(fileURL)}&embedded=true`;
         } else {
           alert('Please upload a valid PDF, DOC, or DOCX document.');
         }
