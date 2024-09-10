@@ -5,8 +5,10 @@
   <title>Author and Article Search Tool</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
       margin: 20px;
+      background-color: #f0f2f5;
+      color: #333;
     }
     .container {
       display: flex;
@@ -21,28 +23,48 @@
       border-left: 2px solid #ccc;
     }
     .search-container {
+      display: flex;
+      align-items: center;
       margin-bottom: 20px;
+      padding: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
     }
     .results {
       margin-top: 20px;
     }
     .result-item {
-      border: 1px solid #ccc;
-      padding: 15px;
+      border: 1px solid #ddd;
+      padding: 20px;
       margin-bottom: 15px;
-      border-radius: 5px;
+      border-radius: 8px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-    .fetch-btn, .pdf-btn {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      cursor: pointer;
-      border-radius: 5px;
-      margin-right: 5px;
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
     }
-    .pdf-btn {
-      background-color: #FF5722;
+    .button-container a {
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+      border-radius: 8px;
+      background-color: #fff;
+      border: 2px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+    .button-container a img {
+      width: 100%;
+      height: auto; /* Prevents stretching and maintains aspect ratio */
+    }
+    .button-container a:hover {
+      transform: translateY(-3px);
+      background-color: #f9f9f9;
     }
     iframe {
       width: 100%;
@@ -60,11 +82,12 @@
       text-align: center;
     }
     input[type="text"] {
-      width: 70%;
-      padding: 8px;
+      width: 75%;
+      padding: 12px;
       font-size: 16px;
-      border-radius: 4px;
+      border-radius: 5px;
       border: 1px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     button {
       padding: 10px;
@@ -83,6 +106,57 @@
       padding: 10px 20px;
       font-size: 16px;
       border-radius: 5px;
+      margin-left: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    button.search-btn:hover {
+      transform: translateY(-3px);
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .save-btn {
+      margin-top: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: transform 0.2s ease;
+    }
+    .save-btn:hover {
+      transform: translateY(-3px);
+    }
+    .author-info {
+      font-size: 14px;
+      color: #666;
+    }
+    .author-line {
+      font-size: 14px;
+      color: #333;
+    }
+    .author-line a {
+      color: #4CAF50;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .author-line a:hover {
+      text-decoration: underline;
+    }
+    h3 a {
+      color: #333;
+      text-decoration: none;
+    }
+    h3 a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -93,6 +167,9 @@
     <div class="left">
       <input type="file" id="fileInput" accept=".pdf, .doc, .docx" onchange="loadFile(event)">
       <iframe id="documentViewer" title="PDF/Word Viewer"></iframe>
+      <textarea id="textBox" placeholder="Paste or edit text here..."></textarea>
+      <input type="text" id="fileNameInput" placeholder="Enter file name" />
+      <button class="save-btn" onclick="saveText()">Save as .txt</button>
     </div>
 
     <div class="right">
@@ -106,7 +183,55 @@
   </div>
 
   <script>
-    // Function to search for author details using OpenAlex API, CrossRef API, and arXiv API
+    let uploadedFileName = '';
+
+    // Function to load PDF or Word file in the iframe (supports both .doc and .docx files)
+    function loadFile(event) {
+      const file = event.target.files[0];
+      const viewer = document.getElementById('documentViewer');
+
+      if (file) {
+        uploadedFileName = file.name.split('.').slice(0, -1).join(''); // Get the filename without extension
+        document.getElementById('fileNameInput').value = uploadedFileName; // Set the filename in the input box
+
+        const fileURL = URL.createObjectURL(file);
+        const fileType = file.type;
+
+        if (fileType === 'application/pdf') {
+          // Load PDF in iframe with zoom 100%
+          viewer.src = fileURL + '#zoom=100';
+        } else if (fileType === 'application/msword' || fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          // Use Office Online viewer for Word documents
+          viewer.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileURL)}`;
+        } else {
+          alert('Please upload a valid PDF, DOC, or DOCX document.');
+        }
+      }
+    }
+
+    // Function to save text content to a .txt file
+    function saveText() {
+      const textContent = document.getElementById('textBox').value;
+      let fileName = document.getElementById('fileNameInput').value || 'untitled'; // Default to "untitled" if no name
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${fileName}.txt`;
+      link.click();
+    }
+
+    // Helper function to extract DOI from a string and handle trailing punctuation
+    function extractDOI(text) {
+      const doiPattern = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
+      let match = text.match(doiPattern);
+      if (match) {
+        // Remove trailing punctuation (e.g., periods or commas)
+        match = match[0].replace(/[.,;!?]+$/, '');
+      }
+      return match;
+    }
+
+    // Function to search for author details using CrossRef API (for DOI-based search)
     function searchAuthor() {
       const query = document.getElementById('searchQuery').value;
       if (!query) {
@@ -117,121 +242,88 @@
       // Show loading indicator
       document.getElementById('loading').style.display = 'block';
 
-      // Clean the query and split into parts to handle full citation, title, author, etc.
-      const sanitizedQuery = query.replace(/[.,]/g, '').split(' ').join('+');
+      // Check if the query contains a DOI
+      const doi = extractDOI(query);
+      let crossRefUrl;
 
-      // Build the OpenAlex API request URL
-      const openAlexUrl = `https://api.openalex.org/works?filter=title.search:${encodeURIComponent(sanitizedQuery)}&per-page=5`;
+      // If a DOI is found, use it to search via CrossRef API
+      if (doi) {
+        crossRefUrl = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
+      } else {
+        // Otherwise, search using titles, authors, or other keywords via CrossRef
+        const sanitizedQuery = query.replace(/[.,]/g, '').split(' ').join('+');
+        crossRefUrl = `https://api.crossref.org/works?query=${encodeURIComponent(sanitizedQuery)}&rows=5`;
+      }
 
-      // Fetch author details from OpenAlex API
-      fetch(openAlexUrl)
+      fetch(crossRefUrl)
         .then(response => response.json())
         .then(data => {
           // Hide loading indicator
           document.getElementById('loading').style.display = 'none';
 
-          // Clear previous results
           const resultsContainer = document.getElementById('results');
           resultsContainer.innerHTML = '';
 
-          // Check if results exist
-          if (data.results && data.results.length > 0) {
-            data.results.forEach(work => {
-              const title = work.title;
-              const authors = work.authorships;
-              const arxivId = work.arxiv_id || null; // Get arXiv ID if available
-              const doi = work.doi || null; // Get DOI if available
+          // Check if there are results
+          let works = data.message.items || (data.message.title ? [data.message] : []);
+          if (works.length > 0) {
+            works.forEach(work => {
+              const title = work.title ? work.title[0] : 'Untitled';
+              const authors = work.author || [];
+              const doiLink = work.DOI || null;
 
-              let authorList = '';
-              authors.forEach(author => {
-                const name = author.author.display_name || '';
-                const fullAffiliation = author.raw_affiliation_string || '';
-                const institutions = author.institutions || [];
-                const primaryInstitution = institutions.length > 0 ? institutions[0] : {};
-                const institution = primaryInstitution.display_name || '';
-                const country = primaryInstitution.country_code || '';
-                const email = author.author.email || '';
+              // Prepare authors as a comma-separated string
+              const authorNames = authors.map(author => `${author.given} ${author.family}`).join(', ');
 
-                // Only display fields that are available
-                const affiliationDetails = fullAffiliation || `${institution}${country ? ', ' + country : ''}`;
-                const emailDisplay = email ? `<br>${email}<br>` : '';
+              // Generate the search URL for all authors (clicking on any author will search for all)
+              const authorSearchQuery = encodeURIComponent(authorNames);
+              const authorLinks = authors.map(author => 
+                `<a href="https://scholar.google.com/scholar?q=${authorSearchQuery}" target="_blank">${author.given} ${author.family}</a>`
+              ).join(', ');
 
-                if (name || affiliationDetails || email) {
-                  authorList += `
-                    <div class="author-info">
-                      ${name ? name + '<br>' : ''}
-                      ${affiliationDetails ? affiliationDetails + '<br>' : ''}
-                      ${emailDisplay}
-                    </div><br>
-                  `;
-                }
-              });
+              // Generate buttons for DOI, Google Scholar, ArXiv, and PDF
+              let doiButton = '';
+              let scholarButton = '';
+              let arxivButton = '';
+              let pdfButton = '';
 
-              // Generate links for arXiv and DOI
-              let arxivLink = '';
-              let pdfLink = '';
-              let doiLink = '';
-
-              if (arxivId) {
-                arxivLink = `<a href="https://arxiv.org/abs/${arxivId}" target="_blank" class="fetch-btn">View Article</a>`;
-                pdfLink = `<a href="https://arxiv.org/pdf/${arxivId}" target="_blank" class="pdf-btn">Download PDF</a>`;
+              if (doiLink) {
+                doiButton = `<a href="https://doi.org/${doiLink}" target="_blank"><img src="https://github.com/prakashsharma19/Referee/blob/main/Doi-removebg-preview.png?raw=true" alt="DOI"></a>`;
               }
-              if (doi) {
-                doiLink = `<a href="https://doi.org/${doi}" target="_blank" class="fetch-btn">Source (DOI)</a>`;
-                doiLink += ` <a href="https://scholar.google.com/scholar?q=${encodeURIComponent(title)}" target="_blank" class="fetch-btn">Google Scholar</a>`;
+
+              scholarButton = `<a href="https://scholar.google.com/scholar?q=${encodeURIComponent(title)}" target="_blank"><img src="https://github.com/prakashsharma19/Referee/blob/main/Google_scholar-removebg-preview.png?raw=true" alt="Google Scholar"></a>`;
+              arxivButton = `<a href="https://arxiv.org/search/?query=${encodeURIComponent(title)}&searchtype=all" target="_blank"><img src="https://github.com/prakashsharma19/Referee/blob/main/ArXiv%20image.png?raw=true" alt="ArXiv"></a>`;
+
+              // If PDF link is available (for ArXiv or similar), add a button
+              if (work['link'] && work['link'].some(link => link['content-type'] === 'application/pdf')) {
+                const pdfLink = work['link'].find(link => link['content-type'] === 'application/pdf').URL;
+                pdfButton = `<a href="${pdfLink}" target="_blank"><img src="https://github.com/prakashsharma19/Referee/blob/main/PDf.jpg?raw=true" alt="PDF"></a>`;
               }
 
               const resultItem = `
                 <div class="result-item">
-                  <h3>${title}</h3>
-                  ${authorList}
-                  ${arxivLink}
-                  ${pdfLink}
-                  ${doiLink}
+                  <h3><a href="https://www.google.com/search?q=${encodeURIComponent(title)}" target="_blank">${title}</a></h3>
+                  <p class="author-line">by: ${authorLinks}</p>
+                  <div class="button-container">
+                    ${doiButton}
+                    ${scholarButton}
+                    ${arxivButton}
+                    ${pdfButton}
+                  </div>
                 </div>
               `;
               resultsContainer.innerHTML += resultItem;
             });
           } else {
-            // No results found, suggest searching on Google Scholar
-            resultsContainer.innerHTML = `
-              <p>No results found in the database.</p>
-              <button class="search-btn" onclick="searchOnGoogleScholar('${query}')">Try Google Scholar</button>
-            `;
+            // No results found
+            resultsContainer.innerHTML = `<p>No results found.</p>`;
           }
         })
         .catch(error => {
           console.error('Error fetching data:', error);
           alert('An error occurred while fetching data.');
-          document.getElementById('loading').style.display = 'none'; // Hide loading indicator on error
+          document.getElementById('loading').style.display = 'none';
         });
-    }
-
-    // Function to search on Google Scholar when no results found
-    function searchOnGoogleScholar(query) {
-      const scholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(query)}`;
-      window.open(scholarUrl, '_blank');
-    }
-
-    // Function to load PDF or Word file in the iframe (supports both .doc and .docx files)
-    function loadFile(event) {
-      const file = event.target.files[0];
-      const viewer = document.getElementById('documentViewer');
-
-      if (file) {
-        const fileURL = URL.createObjectURL(file);
-        const fileType = file.type;
-
-        if (fileType === 'application/pdf') {
-          // Load PDF in iframe (starting with the last page)
-          viewer.src = fileURL + '#view=fit&page=last';
-        } else if (fileType === 'application/msword' || fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          // For Word files, use Google Docs viewer (more reliable)
-          viewer.src = `https://docs.google.com/viewer?url=${encodeURIComponent(fileURL)}&embedded=true`;
-        } else {
-          alert('Please upload a valid PDF, DOC, or DOCX document.');
-        }
-      }
     }
   </script>
 </body>
