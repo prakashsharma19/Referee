@@ -161,7 +161,7 @@
   </style>
 </head>
 <body>
-  <h1>Search Articles</h1>
+  <h1>Search Scholarly Articles</h1>
 
   <div class="container">
     <div class="left">
