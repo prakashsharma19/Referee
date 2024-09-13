@@ -174,7 +174,7 @@
 
     <div class="right">
       <div class="search-container">
-        <input type="text" id="searchQuery" placeholder="Enter author name, paper title, or full citation">
+        <input type="text" id="searchQuery" placeholder="Enter Article Details">
         <button class="search-btn" onclick="searchAuthor()">Search</button>
       </div>
       <p class="loading" id="loading">Loading...</p>
